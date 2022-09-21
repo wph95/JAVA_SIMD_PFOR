@@ -20,23 +20,18 @@ public class SampleBenchmark {
 
     public int[] in = new int[256];
     public Lucene lucene = new Lucene();
-    IndexInput input;
-    IndexOutput output;
+    ByteBuffersDataOutput addressBuffer = new ByteBuffersDataOutput();
 
-    @Param({"simd", "scalar", "simd-avx2", "simd-avx512"})
+//    @Param({"simd", "scalar", "simd-avx2", "simd-avx512"})
+    @Param({ "128-simd", "256-simd", "512-simd", "128-lucene",})
     private String type;
 
     final Directory d = new ByteBuffersDirectory();
 
-    @TearDown
-    public void tearDown() throws IOException {
-        input.close();
-        output.close();
-    }
     @Setup
     public void setup() throws IOException {
-        in = new int[256];
-        for (int i = 0; i < 32; i++) {
+        in = new int[512];
+        for (int i = 0; i < 64; i++) {
             for (int j = 0; j < 8; j++) {
                 in[i * 8 + j] += 100 + ((i + j) % 4);
             }
@@ -48,29 +43,22 @@ public class SampleBenchmark {
 
     public void simd(VectorSpecies<Integer> s) throws IOException {
         var codec = new BinaryPack(s);
-        output = d.createOutput("test.bin", IOContext.DEFAULT);
-        output.close();
-        input =  d.openInput("test.bin", IOContext.READONCE);
-        d.deleteFile("test.bin");
+        codec.encode(in);
     }
 
     public void lucene() throws IOException {
-        output = d.createOutput("test.bin", IOContext.DEFAULT);
+        ByteBuffersIndexOutput output = new ByteBuffersIndexOutput(addressBuffer, "temp", "temp");
         lucene.encode(output, in);
-        output.close();
-        input =  d.openInput("test.bin", IOContext.READONCE);
-        lucene.decode(input);
-        d.deleteFile("test.bin");
 
     }
 
     @Benchmark
-    public void test(Blackhole bh) throws IOException {
+    public void testDecode(Blackhole bh) throws IOException {
         switch (type) {
-            case "scalar" -> lucene();
-            case "simd" -> simd(IntVector.SPECIES_128);
-            case "simd-avx2" -> simd(IntVector.SPECIES_256);
-            case "simd-avx512" -> simd(IntVector.SPECIES_512);
+            case "128-lucene" -> lucene();
+            case "128-simd" -> simd(IntVector.SPECIES_128);
+            case "256-simd" -> simd(IntVector.SPECIES_256);
+            case "512-simd" -> simd(IntVector.SPECIES_512);
             default -> throw new IllegalStateException("Unknown type: " + type);
         }
     }

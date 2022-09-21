@@ -7,7 +7,12 @@ import java.io.IOException;
 
 public class BinaryPack extends AbsBinaryPack {
 
-
+    // IntVector.SPECIES_128: 128 unsigned 32-bit integers per pack
+    //      32 * 128-bit vector of 4 32-bit integers
+    // IntVector.SPECIES_256: 256 unsigned 32-bit integers per pack
+    //      32 * 256-bit vector of 8 32-bit integers
+    // IntVector.SPECIES_512: 512 unsigned 32-bit integers per pack
+    //      32 * 512-bit vector of 16 32-bit integers
     public BinaryPack(VectorSpecies<Integer> species) {
         super(species);
     }
@@ -15,7 +20,7 @@ public class BinaryPack extends AbsBinaryPack {
     public IntVector[] createVec(int[] arr) {
         var out = new IntVector[32];
         for (int i = 0; i < 32; i++) {
-            var v = IntVector.fromArray(IntVector.SPECIES_256, arr, i * VECTOR_LENGTH);
+            var v = IntVector.fromArray(SPECIES, arr, i * VECTOR_LENGTH);
             out[i] = v;
 
         }
@@ -104,6 +109,18 @@ public class BinaryPack extends AbsBinaryPack {
     }
 
 
+    public int[] encode(int[] data) throws IOException {
+        var bit = 7;
+        var packedBlock = packBlock(createVec(data), bit);
+
+        var out = new int[32 * VECTOR_LENGTH];
+        for (int i = 0; i < 7; i++) {
+            var part = packedBlock[i].toArray();
+            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
+        }
+        return out;
+    }
+
     public int[] test(int[] data, int size) throws IOException {
         var in = createVec(data);
         var compressed = packBlock(in, size);
@@ -113,7 +130,7 @@ public class BinaryPack extends AbsBinaryPack {
         var out = new int[32 * VECTOR_LENGTH];
         for (int i = 0; i < 32; i++) {
             var part = packBlocked[i].toArray();
-            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, 8);
+            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
 
         }
         return out;
