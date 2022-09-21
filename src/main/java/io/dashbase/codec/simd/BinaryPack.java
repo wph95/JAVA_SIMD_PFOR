@@ -121,10 +121,21 @@ public class BinaryPack extends AbsBinaryPack {
         return out;
     }
 
-    public int[] test(int[] data, int size) throws IOException {
+    public int[] decode(IntVector[] data) throws IOException {
+        var packBlocked = unpackBlock(data, 7);
+        var out = new int[32 * VECTOR_LENGTH];
+        for (int i = 0; i < 32; i++) {
+            var part = packBlocked[i].toArray();
+            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
+
+        }
+        return out;
+    }
+
+    public int[] test(int[] data, int bitSize) throws IOException {
         var in = createVec(data);
-        var compressed = packBlock(in, size);
-        var packBlocked = unpackBlock(compressed, size);
+        var compressed = packBlock(in, bitSize);
+        var packBlocked = unpackBlock(compressed, bitSize);
 
 
         var out = new int[32 * VECTOR_LENGTH];

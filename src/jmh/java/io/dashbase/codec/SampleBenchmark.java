@@ -50,8 +50,7 @@ public class SampleBenchmark {
     public void simd(VectorSpecies<Integer> s, int size) throws IOException {
         var codec = new BinaryPack(s);
         for (int i = 0; i < size; i++) {
-            var v = codec.encode(dataI);
-            codec.encode(v);
+            codec.test(dataI, 7);
         }
     }
 
