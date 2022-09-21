@@ -12,7 +12,7 @@ import static io.dashbase.codec.ForUtil.BLOCK_SIZE;
 public class Lucene {
     final ForUtil forUtil = new ForUtil();
 
-    public void decode(IndexInput in) throws IOException {
+    public long[] decode(IndexInput in) throws IOException {
         final int bitsPerValue = in.readByte();
         final long currentFilePointer = in.getFilePointer();
         final long[] restored = new long[BLOCK_SIZE];
@@ -20,9 +20,10 @@ public class Lucene {
         long[] tmp = new long[BLOCK_SIZE / 2];
 
         forUtil.decode(bitsPerValue, in, restored);
+        return restored;
     }
 
-    public void encode(IndexOutput out, int[] values) throws IOException {
+    public void encode(IndexOutput out, long[] values) throws IOException {
         long[] source = new long[BLOCK_SIZE];
         long or = 0;
         for (int j = 0; j < BLOCK_SIZE; ++j) {
@@ -35,12 +36,4 @@ public class Lucene {
 
     }
 
-    public int[] test(int[] values, IndexOutput out, IndexInput in) throws Exception {
-
-        encode(out, values);
-        out.close();
-
-        decode(in);
-        return values;
-    }
 }

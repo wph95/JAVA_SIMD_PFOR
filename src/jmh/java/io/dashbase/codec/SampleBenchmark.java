@@ -1,5 +1,6 @@
 package io.dashbase.codec;
 
+import io.dashbase.codec.Utils.MemoryOutput;
 import io.dashbase.codec.simd.BinaryPack;
 import jdk.incubator.vector.IntVector;
 import jdk.incubator.vector.VectorSpecies;
@@ -18,47 +19,58 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class SampleBenchmark {
 
-    public int[] in = new int[256];
+    public long[] dataL = new long[512];
+    public int[] dataI = new int[512];
     public Lucene lucene = new Lucene();
     ByteBuffersDataOutput addressBuffer = new ByteBuffersDataOutput();
 
-//    @Param({"simd", "scalar", "simd-avx2", "simd-avx512"})
-    @Param({ "128-simd", "256-simd", "512-simd", "128-lucene",})
+    @Param({"512-simd","128-lucene", "256-simd",  "128-simd",})
     private String type;
 
-    final Directory d = new ByteBuffersDirectory();
+
+    @TearDown(Level.Iteration)
+    public void tearDown() throws IOException {
+        addressBuffer.reset();
+    }
 
     @Setup
     public void setup() throws IOException {
-        in = new int[512];
+        dataL = new long[512];
+        dataI = new int[512];
         for (int i = 0; i < 64; i++) {
             for (int j = 0; j < 8; j++) {
-                in[i * 8 + j] += 100 + ((i + j) % 4);
+                dataL[i * 8 + j] += 100 + ((i + j) % 4);
+                dataI[i * 8 + j] += 100 + ((i + j) % 4);
             }
         }
 
 
-
     }
 
-    public void simd(VectorSpecies<Integer> s) throws IOException {
+    public void simd(VectorSpecies<Integer> s, int size) throws IOException {
         var codec = new BinaryPack(s);
-        codec.encode(in);
+        for (int i = 0; i < size; i++) {
+            var v = codec.encode(dataI);
+            codec.encode(v);
+        }
     }
 
     public void lucene() throws IOException {
-        ByteBuffersIndexOutput output = new ByteBuffersIndexOutput(addressBuffer, "temp", "temp");
-        lucene.encode(output, in);
-
+        for (int i = 0; i < 4; i++) {
+            var output = new MemoryOutput("test", "test.bin", 512*4);
+            lucene.encode(output, dataL);
+            var in = output.toInput();
+            lucene.decode(in);
+        }
     }
 
     @Benchmark
-    public void testDecode(Blackhole bh) throws IOException {
+    public void encode512Int(Blackhole bh) throws IOException {
         switch (type) {
             case "128-lucene" -> lucene();
-            case "128-simd" -> simd(IntVector.SPECIES_128);
-            case "256-simd" -> simd(IntVector.SPECIES_256);
-            case "512-simd" -> simd(IntVector.SPECIES_512);
+            case "128-simd" -> simd(IntVector.SPECIES_128, 4);
+            case "256-simd" -> simd(IntVector.SPECIES_256, 2);
+            case "512-simd" -> simd(IntVector.SPECIES_512, 1);
             default -> throw new IllegalStateException("Unknown type: " + type);
         }
     }

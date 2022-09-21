@@ -34,5 +34,8 @@ tasks.withType(JavaCompile) { options.compilerArgs += incubatorArguments }
 
 jmh {
     jvmArgs = incubatorArguments
+}
 
+jmhRunBytecodeGenerator {
+    jvmArgs = incubatorArguments
 }
