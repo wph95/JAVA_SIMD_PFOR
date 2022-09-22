@@ -108,8 +108,7 @@ public class TestBinaryPerf {
     public void testSIMD() throws IOException {
         var bench = new BaseBenchmark();
         bench.init(16);
-
-
+        bench.simdEncode(BaseBenchmark.SIMDType.SIMD512, 1000_000);
     }
 
 }

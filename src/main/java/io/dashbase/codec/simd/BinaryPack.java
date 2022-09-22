@@ -34,7 +34,18 @@ public class BinaryPack extends AbsBinaryPack {
         return PackedInts.bitsRequired(or);
     }
 
-    public IntVector[] packBlock(IntVector[] compassed, int bitSize) throws IOException {
+    public IntVector[] createVec(int[] arr) {
+        var size = arr.length / VECTOR_LENGTH;
+
+        var out = new IntVector[size];
+        for (int i = 0; i < size; i++) {
+            out[i] = IntVector.fromArray(SPECIES, arr, i * VECTOR_LENGTH);
+        }
+
+        return out;
+    }
+
+    public IntVector[] packBlock(IntVector[] compassed, int bitSize) {
         IntVector[] out;
         switch (bitSize) {
             case 1 -> out = packBlock1(compassed);
@@ -68,14 +79,13 @@ public class BinaryPack extends AbsBinaryPack {
             case 29 -> out = packBlock29(compassed);
             case 30 -> out = packBlock30(compassed);
             case 31 -> out = packBlock31(compassed);
-            case 32 -> out = packBlock32(compassed);
-            default -> throw new IOException("bitSize must be in [1, 32], bitSize=" + bitSize);
+            default -> out = packBlock32(compassed);
         }
         return out;
     }
 
 
-    public IntVector[] unpackBlock(IntVector[] compassed, int bitSize) throws IOException {
+    public IntVector[] unpackBlock(IntVector[] compassed, int bitSize) {
         IntVector[] out;
         switch (bitSize) {
             case 1 -> out = unpackBlock1(compassed);
@@ -109,8 +119,7 @@ public class BinaryPack extends AbsBinaryPack {
             case 29 -> out = unpackBlock29(compassed);
             case 30 -> out = unpackBlock30(compassed);
             case 31 -> out = unpackBlock31(compassed);
-            case 32 -> out = unpackBlock32(compassed);
-            default -> throw new IOException("bitSize must be in [1, 32], bitSize=" + bitSize);
+            default -> out = unpackBlock32(compassed);
         }
         return out;
     }
@@ -129,11 +138,10 @@ public class BinaryPack extends AbsBinaryPack {
         return out;
     }
 
-    public int[] encode(IntVector[] inVec, int bit) throws IOException {
+    public int[] encode(IntVector[] inVec, int bit) {
         var packedVec = encodeVec(inVec, bit);
-
         var out = new int[bit * VECTOR_LENGTH];
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < bit; i++) {
             var part = packedVec[i].toArray();
             System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
         }
@@ -141,7 +149,7 @@ public class BinaryPack extends AbsBinaryPack {
     }
 
 
-    public IntVector[] encodeVec(IntVector[] inVec, int bit) throws IOException {
+    public IntVector[] encodeVec(IntVector[] inVec, int bit) {
         return packBlock(inVec, bit);
     }
 
@@ -160,21 +168,8 @@ public class BinaryPack extends AbsBinaryPack {
         return out;
     }
 
-    //    TODO
-    public int[] decode(IndexInput compressed, int bitSize) throws IOException {
-        var compressedBlock = new IntVector[bitSize];
 
-        var buf = new byte[bitSize * VECTOR_LENGTH * 4];
-        for (int i = 0; i < bitSize; i++) {
-            compressed.readBytes(buf, i * VECTOR_LENGTH * 4, VECTOR_LENGTH * 4);
-            compressedBlock[i] = IntVector.fromByteArray(SPECIES, buf, i * VECTOR_LENGTH * 4, ByteOrder.LITTLE_ENDIAN);
-        }
-        System.out.println("dc:  " + Arrays.toString(toArr(compressedBlock, 7)));
-
-        return decode(compressedBlock, bitSize);
-    }
-
-    public int[] decode(IntVector[] data, int bitSize) throws IOException {
+    public int[] decode(IntVector[] data, int bitSize) {
         var packBlocked = unpackBlock(data, bitSize);
         var out = new int[32 * VECTOR_LENGTH];
         for (int i = 0; i < 32; i++) {

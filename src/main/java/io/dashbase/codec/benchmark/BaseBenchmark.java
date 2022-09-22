@@ -81,12 +81,12 @@ public class BaseBenchmark {
         return compressed;
     }
 
-    public void simdDecode(SIMDType type, int size) throws IOException {
+    public void simdDecode(SIMDType type, int repeat) throws IOException {
         BinaryPack codec = getCodec(type);
         var cache = getCache(type);
 
-        for (int i = 0; i < size; i++) {
-            codec.decode(cache[i], 7);
+        for (int i = 0; i < repeat; i++) {
+            codec.decode(cache[i], 12);
         }
     }
 

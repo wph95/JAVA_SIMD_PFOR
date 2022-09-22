@@ -22,10 +22,11 @@ public class SampleBenchmark {
 
     public BaseBenchmark baseBenchmark = new BaseBenchmark();
 
-    @Param({"128-lucene", "512-simd", "256-simd", "128-simd",})
+    @Param({"128-lucene", "512-simd"})
+//    @Param({"128-lucene", "512-simd", "256-simd", "128-simd",})
     private String type;
 
-    @Param({"7", "16"})
+    @Param({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "31"})
     private String size;
 
 
@@ -40,8 +41,6 @@ public class SampleBenchmark {
         baseBenchmark.init(Integer.parseInt(size));
 
     }
-
-
 
 
     @Benchmark
