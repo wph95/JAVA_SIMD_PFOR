@@ -3,6 +3,7 @@ package io.dashbase.codec.simd;
 import jdk.incubator.vector.*;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.util.packed.PackedInts;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -22,14 +23,15 @@ public class BinaryPack extends AbsBinaryPack {
         super(species);
     }
 
-    public IntVector[] createVec(int[] arr) {
-        var out = new IntVector[32];
+    public int createVec(int[] arr, IntVector[] out) {
+        var or = 0;
         for (int i = 0; i < 32; i++) {
             var v = IntVector.fromArray(SPECIES, arr, i * VECTOR_LENGTH);
             out[i] = v;
-
+            or |= v.reduceLanes(VectorOperators.OR);
         }
-        return out;
+
+        return PackedInts.bitsRequired(or);
     }
 
     public IntVector[] packBlock(IntVector[] compassed, int bitSize) throws IOException {
@@ -114,27 +116,39 @@ public class BinaryPack extends AbsBinaryPack {
     }
 
 
-    public int[] encode(int[] data) throws IOException {
-        var bit = 7;
-        var packedBlock = packBlock(createVec(data), bit);
+    public int[] encodeI(int[] data) throws IOException {
+        var inVec = new IntVector[32];
+        var bit = createVec(data, inVec);
+        var packedVec = packBlock(inVec, bit);
 
         var out = new int[bit * VECTOR_LENGTH];
         for (int i = 0; i < 7; i++) {
-            var part = packedBlock[i].toArray();
+            var part = packedVec[i].toArray();
             System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
         }
         return out;
     }
 
-    //    TODO
-    public IntVector[] encodeV(int[] data) throws IOException {
-        var bit = 7;
-        return packBlock(createVec(data), bit);
+    public int[] encode(IntVector[] inVec, int bit) throws IOException {
+        var packedVec = encodeVec(inVec, bit);
+
+        var out = new int[bit * VECTOR_LENGTH];
+        for (int i = 0; i < 7; i++) {
+            var part = packedVec[i].toArray();
+            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
+        }
+        return out;
+    }
+
+
+    public IntVector[] encodeVec(IntVector[] inVec, int bit) throws IOException {
+        return packBlock(inVec, bit);
     }
 
     public int[] encode(int[] data, IndexOutput compressed) throws IOException {
-        var bitSize = 7;
-        var packedBlock = packBlock(createVec(data), bitSize);
+        var inVec = new IntVector[32];
+        var bitSize = createVec(data, inVec);
+        var packedBlock = packBlock(inVec, bitSize);
 
         var out = new int[32 * VECTOR_LENGTH];
         var buf = ByteBuffer.allocate(bitSize * VECTOR_LENGTH * 4);
@@ -162,21 +176,6 @@ public class BinaryPack extends AbsBinaryPack {
 
     public int[] decode(IntVector[] data, int bitSize) throws IOException {
         var packBlocked = unpackBlock(data, bitSize);
-        var out = new int[32 * VECTOR_LENGTH];
-        for (int i = 0; i < 32; i++) {
-            var part = packBlocked[i].toArray();
-            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
-
-        }
-        return out;
-    }
-
-    public int[] test(int[] data, int bitSize) throws IOException {
-        var in = createVec(data);
-        var compressed = packBlock(in, bitSize);
-        var packBlocked = unpackBlock(compressed, bitSize);
-
-
         var out = new int[32 * VECTOR_LENGTH];
         for (int i = 0; i < 32; i++) {
             var part = packBlocked[i].toArray();

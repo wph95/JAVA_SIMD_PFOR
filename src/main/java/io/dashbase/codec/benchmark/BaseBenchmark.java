@@ -1,14 +1,14 @@
-package io.dashbase.codec;
+package io.dashbase.codec.benchmark;
 
+import io.dashbase.codec.Lucene;
 import io.dashbase.codec.Utils.MemoryInput;
 import io.dashbase.codec.Utils.MemoryOutput;
 import io.dashbase.codec.simd.BinaryPack;
 import jdk.incubator.vector.IntVector;
-import jdk.incubator.vector.VectorSpecies;
 
 import java.io.IOException;
 
-import static io.dashbase.codec.BaseBenchmark.SIMDType.*;
+import static io.dashbase.codec.benchmark.BaseBenchmark.SIMDType.*;
 import static jdk.incubator.vector.IntVector.*;
 
 public class BaseBenchmark {
@@ -74,7 +74,9 @@ public class BaseBenchmark {
         BinaryPack codec = getCodec(type);
         var compressed = new IntVector[size][32];
         for (int i = 0; i < size; i++) {
-            compressed[i] = codec.encodeV(dataI);
+            var inVec = new IntVector[32];
+            var bitSize = codec.createVec(dataI, inVec);
+            compressed[i] = codec.encodeVec(inVec, bitSize);
         }
         return compressed;
     }
