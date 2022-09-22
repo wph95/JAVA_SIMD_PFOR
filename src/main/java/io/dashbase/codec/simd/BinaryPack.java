@@ -1,8 +1,13 @@
 package io.dashbase.codec.simd;
 
 import jdk.incubator.vector.*;
+import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
 
 
 public class BinaryPack extends AbsBinaryPack {
@@ -113,7 +118,7 @@ public class BinaryPack extends AbsBinaryPack {
         var bit = 7;
         var packedBlock = packBlock(createVec(data), bit);
 
-        var out = new int[32 * VECTOR_LENGTH];
+        var out = new int[bit * VECTOR_LENGTH];
         for (int i = 0; i < 7; i++) {
             var part = packedBlock[i].toArray();
             System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
@@ -121,8 +126,42 @@ public class BinaryPack extends AbsBinaryPack {
         return out;
     }
 
-    public int[] decode(IntVector[] data) throws IOException {
-        var packBlocked = unpackBlock(data, 7);
+    //    TODO
+    public IntVector[] encodeV(int[] data) throws IOException {
+        var bit = 7;
+        return packBlock(createVec(data), bit);
+    }
+
+    public int[] encode(int[] data, IndexOutput compressed) throws IOException {
+        var bitSize = 7;
+        var packedBlock = packBlock(createVec(data), bitSize);
+
+        var out = new int[32 * VECTOR_LENGTH];
+        var buf = ByteBuffer.allocate(bitSize * VECTOR_LENGTH * 4);
+        for (int i = 0; i < bitSize; i++) {
+            packedBlock[i].intoByteBuffer(buf, i * VECTOR_LENGTH * 4, ByteOrder.LITTLE_ENDIAN);
+        }
+
+        compressed.writeBytes(buf.array(), 0, buf.array().length);
+        return out;
+    }
+
+    //    TODO
+    public int[] decode(IndexInput compressed, int bitSize) throws IOException {
+        var compressedBlock = new IntVector[bitSize];
+
+        var buf = new byte[bitSize * VECTOR_LENGTH * 4];
+        for (int i = 0; i < bitSize; i++) {
+            compressed.readBytes(buf, i * VECTOR_LENGTH * 4, VECTOR_LENGTH * 4);
+            compressedBlock[i] = IntVector.fromByteArray(SPECIES, buf, i * VECTOR_LENGTH * 4, ByteOrder.LITTLE_ENDIAN);
+        }
+        System.out.println("dc:  " + Arrays.toString(toArr(compressedBlock, 7)));
+
+        return decode(compressedBlock, bitSize);
+    }
+
+    public int[] decode(IntVector[] data, int bitSize) throws IOException {
+        var packBlocked = unpackBlock(data, bitSize);
         var out = new int[32 * VECTOR_LENGTH];
         for (int i = 0; i < 32; i++) {
             var part = packBlocked[i].toArray();
@@ -144,6 +183,17 @@ public class BinaryPack extends AbsBinaryPack {
             System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
 
         }
+        return out;
+    }
+
+    public int[] toArr(IntVector[] data, int size) {
+        var out = new int[size * VECTOR_LENGTH];
+        for (int i = 0; i < size; i++) {
+            var part = data[i].toArray();
+            System.arraycopy(part, 0, out, i * VECTOR_LENGTH, VECTOR_LENGTH);
+
+        }
+
         return out;
     }
 }

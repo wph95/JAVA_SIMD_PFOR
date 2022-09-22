@@ -9,7 +9,7 @@ public class MemoryOutput extends IndexOutput {
 
 
 
-    byte[] buffer;
+    public byte[] buffer;
     int pos = 0;
     /**
      * Sole constructor. resourceDescription should be non-null, opaque string describing this

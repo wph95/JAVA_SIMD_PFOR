@@ -1,5 +1,7 @@
 package io.dashbase.codec;
 
+import io.dashbase.codec.simd.BinaryPack;
+import jdk.incubator.vector.IntVector;
 import org.apache.lucene.store.*;
 import org.apache.lucene.util.packed.PackedInts;
 import org.junit.jupiter.api.Test;
@@ -96,11 +98,27 @@ public class TestPerf {
             values[i] = i;
         }
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             testFor(d, values, 10000);
             testPFor(d, values, 10000);
 
         }
+    }
+
+    @Test
+    public void testSIMD() throws IOException {
+        var dataI = new int[512];
+        for (int i = 0; i < 64; i++) {
+            for (int j = 0; j < 8; j++) {
+                dataI[i * 8 + j] += 100 + ((i + j) % 4);
+            }
+        }
+
+        for (int i = 0; i < 5000_000; i++) {
+            var codec = new BinaryPack(IntVector.SPECIES_512);
+            codec.test(dataI, 7);
+        }
+
     }
 
 }

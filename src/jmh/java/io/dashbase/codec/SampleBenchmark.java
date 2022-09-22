@@ -1,5 +1,6 @@
 package io.dashbase.codec;
 
+import io.dashbase.codec.Utils.MemoryInput;
 import io.dashbase.codec.Utils.MemoryOutput;
 import io.dashbase.codec.simd.BinaryPack;
 import jdk.incubator.vector.IntVector;
@@ -10,6 +11,9 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+
+import static io.dashbase.codec.BaseBenchmark.SIMDType.SIMD128;
+import static jdk.incubator.vector.IntVector.*;
 
 @State(Scope.Thread)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
@@ -24,7 +28,20 @@ public class SampleBenchmark {
     public Lucene lucene = new Lucene();
     ByteBuffersDataOutput addressBuffer = new ByteBuffersDataOutput();
 
-    @Param({"512-simd","128-lucene", "256-simd",  "128-simd",})
+
+    public byte[] luceneCompressed;
+    public IntVector[][] simd128;
+    public IntVector[][] simd256;
+    public IntVector[][] simd512;
+
+    public BinaryPack codec128 = new BinaryPack(SPECIES_128);
+    public BinaryPack codec256 = new BinaryPack(SPECIES_256);
+    public BinaryPack codec512 = new BinaryPack(SPECIES_512);
+
+
+    public BaseBenchmark baseBenchmark = new BaseBenchmark();
+
+    @Param({"128-lucene", "512-simd", "256-simd", "128-simd",})
     private String type;
 
 
@@ -35,41 +52,64 @@ public class SampleBenchmark {
 
     @Setup
     public void setup() throws IOException {
-        dataL = new long[512];
-        dataI = new int[512];
-        for (int i = 0; i < 64; i++) {
-            for (int j = 0; j < 8; j++) {
-                dataL[i * 8 + j] += 100 + ((i + j) % 4);
-                dataI[i * 8 + j] += 100 + ((i + j) % 4);
-            }
-        }
 
+        baseBenchmark.init(7);
 
     }
 
-    public void simd(VectorSpecies<Integer> s, int size) throws IOException {
-        var codec = new BinaryPack(s);
+    public IntVector[][] simdEncode(VectorSpecies<Integer> s, int size) throws IOException {
+        BinaryPack codec = getCodec();
+        var compressed = new IntVector[size][32];
         for (int i = 0; i < size; i++) {
-            codec.test(dataI, 7);
+            compressed[i] = codec.encodeV(dataI);
         }
+        return compressed;
     }
 
-    public void lucene() throws IOException {
-        for (int i = 0; i < 4; i++) {
-            var output = new MemoryOutput("test", "test.bin", 512*4);
-            lucene.encode(output, dataL);
-            var in = output.toInput();
-            lucene.decode(in);
+    public BinaryPack getCodec(){
+        return switch (type) {
+            case "128-simd" -> codec128;
+            case "256-simd" -> codec256;
+            case "512-simd" -> codec512;
+            default -> throw new IllegalStateException("Unexpected value: " + type);
+        };
+    }
+
+//    public void simdDecode(VectorSpecies<Integer> s, int size) throws IOException {
+//        BinaryPack codec = getCodec();
+//        var compressed = new IntVector[size][32];
+//        switch (s.vectorBitSize()) {
+//            case 128 -> compressed = simd128;
+//            case 256 -> compressed = simd256;
+//            case 512 -> compressed = simd512;
+//            default -> throw new IllegalStateException("Unexpected value: " + s.vectorBitSize());
+//        }
+//        for (int i = 0; i < size; i++) {
+//            codec.decode(compressed[i], 7);
+//        }
+//    }
+
+
+
+
+    @Benchmark
+    public void decode_512_7bit(Blackhole bh) throws IOException {
+        switch (type) {
+            case "128-lucene" -> baseBenchmark.luceneDecode();
+            case "128-simd" -> baseBenchmark.simdDecode(SIMD128, 4);
+            case "256-simd" -> baseBenchmark.simdDecode(SIMD128, 2);
+            case "512-simd" -> baseBenchmark.simdDecode(SIMD128, 1);
+            default -> throw new IllegalStateException("Unknown type: " + type);
         }
     }
 
     @Benchmark
-    public void encode512Int(Blackhole bh) throws IOException {
+    public void encode_512_7bit(Blackhole bh) throws IOException {
         switch (type) {
-            case "128-lucene" -> lucene();
-            case "128-simd" -> simd(IntVector.SPECIES_128, 4);
-            case "256-simd" -> simd(IntVector.SPECIES_256, 2);
-            case "512-simd" -> simd(IntVector.SPECIES_512, 1);
+            case "128-lucene" -> baseBenchmark.luceneEncode();
+            case "128-simd" -> baseBenchmark.simdEncode(SIMD128, 4);
+            case "256-simd" -> baseBenchmark.simdEncode(SIMD128, 2);
+            case "512-simd" -> baseBenchmark.simdEncode(SIMD128, 1);
             default -> throw new IllegalStateException("Unknown type: " + type);
         }
     }
