@@ -1,108 +1,67 @@
 package io.dashbase.codec.benchmark;
 
-import io.dashbase.codec.Lucene;
-import io.dashbase.codec.Utils.MemoryInput;
-import io.dashbase.codec.Utils.MemoryOutput;
-import io.dashbase.codec.simd.BinaryPack;
-import jdk.incubator.vector.IntVector;
+import io.dashbase.codec.CodeC;
+import me.lemire.integercompression.synth.ClusteredDataGenerator;
 
-import java.io.IOException;
-
-import static io.dashbase.codec.benchmark.BaseBenchmark.SIMDType.*;
-import static jdk.incubator.vector.IntVector.*;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.util.Arrays;
 
 public class BaseBenchmark {
-    public enum SIMDType {
-        SIMD128,
-        SIMD256,
-        SIMD512,
+    static ClusteredDataGenerator cdg = new ClusteredDataGenerator();
+
+
+    public static long[][] generateTestData(
+        int N, int nbr, int sparsity) {
+        final long[][] data = new long[N][];
+        final int max = (1 << (nbr + sparsity));
+        for (int i = 0; i < N; ++i) {
+            data[i] = Arrays.stream(cdg.generateClustered((1 << nbr), max)).mapToLong(value -> (long) value).toArray();
+        }
+        return data;
     }
 
-    public byte[] luceneCache;
-    public IntVector[][] simd128Cache;
-    public IntVector[][] simd256Cache;
-    public IntVector[][] simd512Cache;
 
-    public long[] dataL = new long[512];
-    public int[] dataI = new int[512];
-
-    public Lucene lucene = new Lucene();
-    public BinaryPack codec128 = new BinaryPack(SPECIES_128);
-    public BinaryPack codec256 = new BinaryPack(SPECIES_256);
-    public BinaryPack codec512 = new BinaryPack(SPECIES_512);
+    public long[] runCodeC(CodeC codec, long[] data, MemorySegment segment) throws Exception {
+        codec.encode(segment, data);
+        return codec.decode(segment);
+    }
 
 
-    public void init(int bitSize) throws IOException {
+    public void print(long[] expected, long[] actual, int start, int size) {
 
-        var MAX = 1 << (bitSize + 1) - 1;
-        dataL = new long[512];
-        dataI = new int[512];
-        for (int i = 0; i < 64; i++) {
-            for (int j = 0; j < 8; j++) {
-                dataI[i * 8 + j] += Math.abs(MAX - 256 + i * 8 + j) % MAX;
-                dataL[i * 8 + j] += Math.abs(MAX - 256 + i * 8 + j) % MAX;
+
+        System.out.println("expected: " + Arrays.toString(Arrays.copyOfRange(expected, start, start + size)));
+        System.out.println("actual:   " + Arrays.toString(Arrays.copyOfRange(actual, start, start + size)));
+    }
+
+    public void print(MemorySegment segment, int start, int end) {
+        var layout = ValueLayout.JAVA_LONG;
+        for (int i = start; i < end; i++) {
+            System.out.print(i + ":" + segment.getAtIndex(layout, i)+ ", ");
+        }
+
+    }
+    public void print(MemorySegment segment) {
+        var layout = ValueLayout.JAVA_LONG;
+        var offset = 0;
+        System.out.print(segment.getAtIndex(layout, 0));
+        offset += 1;
+        for (int i = 0; i < 10; i++) {
+            var bit = segment.getAtIndex(layout, offset);
+            System.out.print("bit: " + bit + "   [");
+            offset += 1;
+            for (int j = 0; j < bit*2; j++) {
+                System.out.print(", " + offset +":" + segment.getAtIndex(layout, offset));
+                offset += 1;
+
             }
+
+            System.out.println();
+
+
         }
 
-        var output = new MemoryOutput("test", "test.bin", 512 * 4);
-        lucene.encode(output, dataL);
-        luceneCache = output.buffer;
-
-        simd128Cache = simdEncode(SIMD128, 4);
-        simd256Cache = simdEncode(SIMD256, 2);
-        simd512Cache = simdEncode(SIMD512, 1);
     }
-
-    public BinaryPack getCodec(SIMDType type) {
-        return switch (type) {
-            case SIMD128 -> codec128;
-            case SIMD256 -> codec256;
-            case SIMD512 -> codec512;
-        };
-    }
-
-    public IntVector[][] getCache(SIMDType type) {
-        return switch (type) {
-            case SIMD128 -> simd128Cache;
-            case SIMD256 -> simd256Cache;
-            case SIMD512 -> simd512Cache;
-        };
-    }
-
-
-    public IntVector[][] simdEncode(SIMDType type, int size) throws IOException {
-        BinaryPack codec = getCodec(type);
-        var compressed = new IntVector[size][32];
-        for (int i = 0; i < size; i++) {
-            var inVec = new IntVector[32];
-            var bitSize = codec.createVec(dataI, inVec);
-            compressed[i] = codec.encodeVec(inVec, bitSize);
-        }
-        return compressed;
-    }
-
-    public void simdDecode(SIMDType type, int repeat) throws IOException {
-        BinaryPack codec = getCodec(type);
-        var cache = getCache(type);
-
-        for (int i = 0; i < repeat; i++) {
-            codec.decode(cache[i], 12);
-        }
-    }
-
-    public void luceneEncode() throws IOException {
-        for (int i = 0; i < 4; i++) {
-            var output = new MemoryOutput("test", "test.bin", 512 * 4);
-            lucene.encode(output, dataL);
-        }
-    }
-
-    public void luceneDecode() throws IOException {
-        for (int i = 0; i < 4; i++) {
-            var input = new MemoryInput("test", luceneCache);
-            lucene.decode(input);
-        }
-    }
-
 
 }

@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.dashbase.codec;
+package io.dashbase.codec.utils;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
@@ -30,7 +30,7 @@ import java.io.IOException;
 // else we pack 2 ints per long
 public class ForUtil {
 
-  static final int BLOCK_SIZE = 128;
+  static public final int BLOCK_SIZE = 128;
   private static final int BLOCK_SIZE_LOG2 = 7;
 
   private static long expandMask32(long mask32) {
@@ -136,7 +136,7 @@ public class ForUtil {
   private final long[] tmp = new long[BLOCK_SIZE / 2];
 
   /** Encode 128 integers from {@code longs} into {@code out}. */
-  void encode(long[] longs, int bitsPerValue, DataOutput out) throws IOException {
+  public void encode(long[] longs, int bitsPerValue, DataOutput out) throws IOException {
     final int nextPrimitive;
     final int numLongs;
     if (bitsPerValue <= 8) {
@@ -318,7 +318,7 @@ public class ForUtil {
   private static final long MASK32_24 = MASKS32[24];
 
   /** Decode 128 integers into {@code longs}. */
-  void decode(int bitsPerValue, DataInput in, long[] longs) throws IOException {
+  public void decode(int bitsPerValue, DataInput in, long[] longs) throws IOException {
     switch (bitsPerValue) {
       case 1:
         decode1(in, tmp, longs);

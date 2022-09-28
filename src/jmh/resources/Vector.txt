@@ -1,0 +1,27 @@
+
+Benchmark            (type)  Mode  Cnt    Score    Error  Units
+Vector.encode        bit*16  avgt   15  162.790 ±  0.458  ns/op
+Vector.encode   vector256*2  avgt   15   33.487 ±  1.824  ns/op
+Vector.encode     vector512  avgt   15   21.799 ±  1.683  ns/op
+Vector.prepare       bit*16  avgt   15    3.232 ±  0.273  ns/op
+Vector.prepare  vector256*2  avgt   15  276.953 ±  4.899  ns/op
+Vector.prepare    vector512  avgt   15  367.212 ± 10.456  ns/op
+
+
+
+Benchmark            (type)  Mode  Cnt    Score    Error  Units
+Vector.encode        bit*16  avgt   15  162.794 ±  0.241  ns/op
+Vector.encode   vector128*4  avgt   15   51.265 ±  0.118  ns/op
+Vector.encode   vector256*2  avgt   15   33.216 ±  0.133  ns/op
+Vector.encode     vector512  avgt   15   16.005 ±  0.141  ns/op
+Vector.prepare       bit*16  avgt   15    3.236 ±  0.271  ns/op
+Vector.prepare  vector128*4  avgt   15  902.820 ± 12.446  ns/op
+Vector.prepare  vector256*2  avgt   15  520.013 ±  9.588  ns/op
+Vector.prepare    vector512  avgt   15  362.894 ±  7.246  ns/op
+
+
+JDK 18
+Benchmark                                  Mode  Cnt      Score     Error  Units
+SIMDBenchmark.byteBuff.toArray             avgt   15   3764.663 ± 122.057  ns/op
+SIMDBenchmark.vector.fromMemorySegment     avgt   15  13278.568 ±  26.163  ns/op
+SIMDBenchmark.vector.fromArray             avgt   15  14855.249 ± 113.880  ns/op

@@ -1,4 +1,4 @@
-package io.dashbase.codec.Utils;
+package io.dashbase.codec.io;
 
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
