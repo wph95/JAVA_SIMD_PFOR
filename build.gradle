@@ -30,7 +30,7 @@ test {
     useJUnitPlatform()
 }
 
-//--enable-preview --add-modules jdk.incubator.foreign --add-modules jdk.incubator.vector
+//--enable-preview  --add-modules jdk.incubator.vector
 var incubatorArguments = ["--add-modules", "jdk.incubator.vector", "--enable-preview"]
 tasks.withType(Test) { jvmArgs += incubatorArguments }
 tasks.withType(JavaCompile) { options.compilerArgs += incubatorArguments }

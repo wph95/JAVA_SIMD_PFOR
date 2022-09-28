@@ -1,9 +1,8 @@
 package io.dashbase.local;
 
+import io.dashbase.codec.benchmark.BaseSIMDIO;
 import jdk.incubator.vector.IntVector;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.MMapDirectory;
 import org.openjdk.jmh.annotations.*;
 
@@ -24,53 +23,58 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class SIMDBenchmark {
-    final static int SIZE = 1000;
-    int[] intArr = new int[32 * SIZE];
+    final static int VEC_SIZE = 10000;
+    final static int SPECIES_SIZE = IntVector.SPECIES_512.length();
+
+    final static int TOTAL = VEC_SIZE * SPECIES_SIZE;
+    final static int TOTAL_BYTE = VEC_SIZE * SPECIES_SIZE * 4;
+
+
+    int[] intArr = new int[TOTAL];
     final static MemorySession session = MemorySession.openConfined();
-    MemorySegment memorySegment = MemorySegment.allocateNative(32 * SIZE * 8, session);
-    ByteBuffer byteBuffer = ByteBuffer.allocateDirect(32 * SIZE * 8).order(ByteOrder.nativeOrder());
-    IntVector[] outVec = new IntVector[1000];
-    int[] outArr = new int[32 * SIZE];
+    MemorySegment memorySegment = MemorySegment.allocateNative(TOTAL_BYTE, session);
+    ByteBuffer byteBuffer = ByteBuffer.allocateDirect(TOTAL_BYTE).order(ByteOrder.nativeOrder());
+    int[] outArr = new int[TOTAL];
 
     Directory d;
 
-    @Setup
+
+    @Setup(Level.Trial)
     public void setup() throws IOException {
-        d = new MMapDirectory(Path.of("/tmp"));
 
-        var out = d.createOutput("test_lucene", IOContext.DEFAULT);
-        for (int i = 0; i < 32 * SIZE; i++) {
-            intArr[i] = i;
-            memorySegment.set(ValueLayout.JAVA_INT, i * 8, i);
-            byteBuffer.putInt(i * 8, i);
-            out.writeInt(i);
+        var in = BaseSIMDIO.createRandomArray(TOTAL);
+
+        for (int i = 0; i < TOTAL; i++) {
+            memorySegment.set(ValueLayout.JAVA_INT, i * 4L, in[i]);
+            byteBuffer.putInt(i * 4, in[i]);
+
         }
-
-
-        out.close();
 
 
     }
 
-
-//    @BaseBenchmark
-//    public void intArr2Vec() throws IOException {
-//        for (int i = 0; i < 1000; i++) {
-//            outVec[i] = IntVector.fromArray(IntVector.SPECIES_512, intArr, i * 32);
-//        }
-//    }
-//
-//    @BaseBenchmark
-//    public void memorySegment2Vec() throws IOException {
-//        for (int i = 0; i < 1000; i++) {
-//            outVec[i] = IntVector.fromMemorySegment(IntVector.SPECIES_512, memorySegment, i * 32 * 8, ByteOrder.LITTLE_ENDIAN);
-//        }
-//    }
+    @Benchmark
+    public void memorySegment2Vec512() throws IOException {
+        BaseSIMDIO.memorySegment2vector(IntVector.SPECIES_512, memorySegment, TOTAL);
+    }
+    @Benchmark
+    public void memorySegment2Vec256() throws IOException {
+        BaseSIMDIO.memorySegment2vector(IntVector.SPECIES_256, memorySegment, TOTAL);
+    }
 
     @Benchmark
     public void byteBuff2IntArr() throws IOException {
-        var in = d.openInput("test_lucene", IOContext.DEFAULT);
-        in.readInts(outArr, 0, SIZE * 32);
+        BaseSIMDIO.bytebuf2array(byteBuffer, TOTAL);
+    }
+
+    @Benchmark
+    public void intBuff2IntArr() throws IOException {
+        BaseSIMDIO.intbuf2array(byteBuffer, TOTAL);
+    }
+
+    @Benchmark
+    public void memorySegment2IntArr() throws IOException {
+        BaseSIMDIO.memorySegment2intArr(memorySegment, TOTAL);
     }
 
 

@@ -1,6 +1,7 @@
 package io.dashbase.codec.benchmark;
 
 import io.dashbase.codec.simd.SIMDBinaryPacking;
+import jdk.incubator.vector.IntVector;
 import me.lemire.integercompression.*;
 import me.lemire.integercompression.differential.Delta;
 import me.lemire.integercompression.differential.IntegratedIntegerCODEC;
@@ -142,4 +143,5 @@ public class MultiCodeC {
                 compressSpeed, decompressSpeed));
         }
     }
+
 }
