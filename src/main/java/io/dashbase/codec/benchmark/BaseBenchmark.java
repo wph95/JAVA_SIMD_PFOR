@@ -22,11 +22,6 @@ public class BaseBenchmark {
     }
 
 
-    public long[] runCodeC(CodeC codec, long[] data, MemorySegment segment) throws Exception {
-        codec.encode(segment, data);
-        return codec.decode(segment);
-    }
-
 
     public void print(long[] expected, long[] actual, int start, int size) {
 

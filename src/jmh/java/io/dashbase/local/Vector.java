@@ -112,16 +112,16 @@ public class Vector {
 
     }
 
-    @Benchmark
-    public void encode() throws IOException {
-        switch (type) {
-//            case "bit*16" -> bit();
-            case "vector128*4" -> vector(inVec128, 64);
-            case "vector256*2" -> vector(inVec256, 64);
-            case "vector512" -> vector(inVec512, 64);
-            default -> throw new RuntimeException("Unknown type: " + type);
-        }
-    }
+//    @Benchmark
+//    public void encode() throws IOException {
+//        switch (type) {
+////            case "bit*16" -> bit();
+//            case "vector128*4" -> vector(inVec128, 64);
+//            case "vector256*2" -> vector(inVec256, 64);
+//            case "vector512" -> vector(inVec512, 64);
+//            default -> throw new RuntimeException("Unknown type: " + type);
+//        }
+//    }
 
 //    @BaseBenchmark
 //    public void prepare() {

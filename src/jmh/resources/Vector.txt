@@ -25,3 +25,7 @@ Benchmark                                  Mode  Cnt      Score     Error  Units
 SIMDBenchmark.byteBuff.toArray             avgt   15   3764.663 ± 122.057  ns/op
 SIMDBenchmark.vector.fromMemorySegment     avgt   15  13278.568 ±  26.163  ns/op
 SIMDBenchmark.vector.fromArray             avgt   15  14855.249 ± 113.880  ns/op
+
+Benchmark                     Mode  Cnt       Score       Error  Units
+SIMDBenchmark.scalarEncode    avgt   15  104600.688 ± 64728.053  ns/op
+SIMDBenchmark.simdPackEncode  avgt   15  388900.746 ± 49826.261  ns/op
