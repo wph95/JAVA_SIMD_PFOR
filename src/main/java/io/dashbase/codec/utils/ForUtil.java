@@ -28,7 +28,7 @@ import java.io.IOException;
 // If bitsPerValue <= 8 then we pack 8 ints per long
 // else if bitsPerValue <= 16 we pack 4 ints per long
 // else we pack 2 ints per long
-public class ForUtil {
+public class ForUtil extends BaseForUtil{
 
   static public final int BLOCK_SIZE = 128;
   private static final int BLOCK_SIZE_LOG2 = 7;
