@@ -1,11 +1,10 @@
 package io.dashbase.codec.utils;
 
-import io.dashbase.codec.v2.BitPacking;
+import io.dashbase.codec.v2.BitPackingLong;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 public class ForUtilV2 extends BaseForUtil {
     public static int BLOCK_SIZE = 128;
@@ -33,14 +32,14 @@ public class ForUtilV2 extends BaseForUtil {
         }
 
         for (int i = 0; i < 4; i++) {
-            BitPacking.fastunpack(inArr, bitsPerValue * i, longs, i * ENCODE_BLOCK_SIZE, bitsPerValue);
+            BitPackingLong.fastunpack(inArr, bitsPerValue * i, longs, i * ENCODE_BLOCK_SIZE, bitsPerValue);
         }
     }
 
 
     public void encode(long[] longs, int bitsPerValue, DataOutput out) throws IOException {
         for (int i = 0; i < 4; i++) {
-            BitPacking.fastpackwithoutmask(longs, i * ENCODE_BLOCK_SIZE, tmp, bitsPerValue * i, bitsPerValue);
+            BitPackingLong.fastpackwithoutmask(longs, i * ENCODE_BLOCK_SIZE, tmp, bitsPerValue * i, bitsPerValue);
         }
 
         long tempV;

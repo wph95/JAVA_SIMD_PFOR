@@ -16,7 +16,6 @@
  */
 package io.dashbase.codec.utils;
 
-import io.dashbase.codec.utils.ForUtil;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.LongHeap;
@@ -26,7 +25,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /** Utility class to encode sequences of 128 small positive integers. */
-public final class PForUtil {
+public final class PForUtil implements BasePForUtil {
 
   private static final int MAX_EXCEPTIONS = 7;
   private static final int HALF_BLOCK_SIZE = ForUtil.BLOCK_SIZE / 2;
@@ -135,7 +134,7 @@ public final class PForUtil {
   }
 
   /** Decode deltas, compute the prefix sum and add {@code base} to all decoded longs. */
-  void decodeAndPrefixSum(DataInput in, long base, long[] longs) throws IOException {
+  public void decodeAndPrefixSum(DataInput in, long base, long[] longs) throws IOException {
     final int token = Byte.toUnsignedInt(in.readByte());
     final int bitsPerValue = token & 0x1f;
     final int numExceptions = token >>> 5;
@@ -169,7 +168,7 @@ public final class PForUtil {
   }
 
   /** Skip 128 integers. */
-  void skip(DataInput in) throws IOException {
+  public void skip(DataInput in) throws IOException {
     final int token = Byte.toUnsignedInt(in.readByte());
     final int bitsPerValue = token & 0x1f;
     final int numExceptions = token >>> 5;

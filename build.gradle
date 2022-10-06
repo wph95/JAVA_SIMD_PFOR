@@ -39,6 +39,7 @@ tasks.withType(JavaCompile) { options.compilerArgs += incubatorArguments }
 
 jmh {
     jvmArgs = incubatorArguments
+    includes= ["io.dashbase.local.PFor*"]
 }
 
 compileJmhJava {
