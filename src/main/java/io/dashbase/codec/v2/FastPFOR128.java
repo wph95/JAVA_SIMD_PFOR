@@ -274,4 +274,53 @@ public class FastPFOR128  {
     protected ByteBuffer makeBuffer(int sizeInBytes) {
         return ByteBuffer.allocateDirect(sizeInBytes);
     }
+
+
+    public int skip(int[] in) {
+        var inpos = new IntWrapper(0);
+        final int initpos = inpos.get();
+        final int wheremeta = in[inpos.get()];
+        inpos.increment();
+        int inexcept = initpos + wheremeta;
+        final int bytesize = in[inexcept++];
+        byteContainer.clear();
+        byteContainer.asIntBuffer().put(in, inexcept, (bytesize + 3) / 4);
+        inexcept += (bytesize + 3) / 4;
+
+        final int bitmap = in[inexcept++];
+        for (int k = 2; k <= 32; ++k) {
+            if ((bitmap & (1 << (k - 1))) != 0) {
+                int size = in[inexcept++];
+                int roundedup = Util
+                    .greatestMultiple(size + 31, 32);
+                if (dataTobePacked[k].length < roundedup)
+                    dataTobePacked[k] = new int[roundedup];
+                if (inexcept + roundedup / 32 * k <= in.length) {
+                    int j = 0;
+                    for (; j < size; j += 32) {
+                        BitPacking.fastunpack(in, inexcept,
+                                              dataTobePacked[k], j, k);
+                        inexcept += k;
+                    }
+                    int overflow = j - size;
+                    inexcept -= overflow * k / 32;
+                } else {
+                    int j = 0;
+                    int[] buf = new int[roundedup / 32 * k];
+                    int initinexcept = inexcept;
+                    System.arraycopy(in, inexcept, buf, 0, in.length - inexcept);
+                    for (; j < size; j += 32) {
+                        BitPacking.fastunpack(buf, inexcept - initinexcept,
+                                              dataTobePacked[k], j, k);
+                        inexcept += k;
+                    }
+                    int overflow = j - size;
+                    inexcept -= overflow * k / 32;
+                }
+            }
+        }
+        inpos.set(inexcept);
+        System.out.println("inpos: " + inpos.get());
+        return inpos.get();
+    }
 }

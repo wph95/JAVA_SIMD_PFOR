@@ -6,6 +6,7 @@ import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 
 public class PForUtilV2 implements BasePForUtil {
@@ -19,7 +20,7 @@ public class PForUtilV2 implements BasePForUtil {
     public IntWrapper inOffset = new IntWrapper(0);
     public IntWrapper outOffset = new IntWrapper(0);
 
-    public static byte[] tempByte = new byte[4 * BLOCK_SIZE];
+    public static byte[] tempByte = new byte[4 * BLOCK_SIZE + 32];
 
 
     public PForUtilV2() {
@@ -77,6 +78,7 @@ public class PForUtilV2 implements BasePForUtil {
         for (int i = 0; i < len; i++) {
             compressedArr[i] = readInt(i * 4);
         }
+
         fastPFOR128.decodePage(compressedArr, inOffset, outArr, outOffset, BLOCK_SIZE);
         for (int i = 0; i < BLOCK_SIZE; i++) {
             longs[i] = outArr[i];
@@ -85,11 +87,17 @@ public class PForUtilV2 implements BasePForUtil {
 
     @Override
     public void decodeAndPrefixSum(DataInput in, long base, long[] longs) throws IOException {
-
+        decode(in, longs);
+        longs[0] += base;
+        for (int i = 1; i < BLOCK_SIZE; i++) {
+            longs[i] += longs[i - 1];
+        }
     }
 
     @Override
     public void skip(DataInput in) throws IOException {
+        var len = in.readInt() & 0xFFFFFFFFL;
 
+        in.skipBytes( len * 4);
     }
 }

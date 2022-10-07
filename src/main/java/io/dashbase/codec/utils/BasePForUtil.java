@@ -14,4 +14,5 @@ public interface BasePForUtil {
     public void decodeAndPrefixSum(DataInput in, long base, long[] longs) throws IOException;
 
     public void skip(DataInput in) throws IOException;
+
 }
