@@ -14,6 +14,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PerfPForUtilTest {
     int SIZE = 10000;
     long[][] mockData;
+    long[] tmpInput = new long[128];
+    long[] outArr= new long[128];
     private PForUtil pForUtil = new PForUtil(new ForUtil());
     private PForUtilV2 pForUtilV2 = new PForUtilV2();
     final Directory d = new ByteBuffersDirectory();
@@ -29,38 +31,61 @@ public class PerfPForUtilTest {
         return out;
     }
 
-
-    public void encodeForUtil() throws IOException {
-        IndexOutput out = d.createOutput("test.bin", IOContext.DEFAULT);
-        var input = new long[128];
+    public void decode(PForUtil util, String fileName) throws IOException {
+        var in = d.openInput(fileName, IOContext.DEFAULT);
         for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < 128; j++) {
-                input[j] = mockData[i][j];
-            }
-            pForUtil.encode(input,  out);
+            util.decode(in, outArr);
         }
-        out.close();
-        d.deleteFile("test.bin");
+        in.close();
     }
 
-    public void encodeForUtilV2() throws IOException {
-        var out = d.createOutput("test.bin", IOContext.DEFAULT);
+    public void encode(PForUtil base, String filename) throws IOException {
+        IndexOutput out = d.createOutput(filename, IOContext.DEFAULT);
         for (int i = 0; i < SIZE; i++) {
-            pForUtilV2.encode(mockData[i],  out);
+            System.arraycopy(mockData[i], 0, tmpInput, 0, 128);
+            base.encode(tmpInput, out);
         }
         out.close();
-        d.deleteFile("test.bin");
     }
 
+    public void decodeV2(PForUtilV2 util, String fileName) throws IOException {
+        var in = d.openInput(fileName, IOContext.DEFAULT);
+        for (int i = 0; i < SIZE; i++) {
+            util.decode(in, outArr);
+        }
+        in.close();
+    }
 
+    public void encodeV2(PForUtilV2 base, String filename) throws IOException {
+        IndexOutput out = d.createOutput(filename, IOContext.DEFAULT);
+        for (int i = 0; i < SIZE; i++) {
+            System.arraycopy(mockData[i], 0, tmpInput, 0, 128);
+            base.encode(tmpInput, out);
+        }
+        out.close();
+    }
+
+    public void encode() throws IOException {
+        encode(pForUtil, "pForUtil.bin");
+        encodeV2(pForUtilV2, "pForUtilV2.bin");
+    }
+
+    public void decode() throws IOException {
+        decode(pForUtil, "pForUtil.bin");
+        decodeV2(pForUtilV2, "pForUtilV2.bin");
+    }
 
     @Test
     public void testPerf() throws IOException {
         mockData = createMockData(SIZE, 24);
 
         for (int j = 0; j < 1000; j++) {
-            encodeForUtil();
-            encodeForUtilV2();
+
+            encode();
+            decode();
+
+            d.deleteFile("pForUtil.bin");
+            d.deleteFile("pForUtilV2.bin");
 
         }
 

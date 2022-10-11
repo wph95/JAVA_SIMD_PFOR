@@ -29,8 +29,12 @@ class PForUtilV2Test {
 
     @Test
     public void testPForUtilV2() throws IOException {
-//        encodeDecode(new PForUtilV2(), 1);
         testEncodeDecode(new PForUtilV2());
+    }
+
+    @Test
+    public void testPForUtilV3() throws IOException {
+        testEncodeDecode(new PForUtilV3());
     }
 
     @Test
@@ -39,8 +43,9 @@ class PForUtilV2Test {
     }
 
     public void testEncodeDecode(BasePForUtil pForUtil) throws IOException {
-        final int iterations = 10000;
-        final int[] values = createTestData(iterations, 31);
+        final int size = 10000 * 128;
+        final int[] values = createTestData(10000, 30);
+        final int iterations = size / pForUtil.BLOCK_SIZE;
 
         final Directory d = new ByteBuffersDirectory();
         final long endPointer = encodeTestData(pForUtil, iterations, values, d);
@@ -57,6 +62,7 @@ class PForUtilV2Test {
             for (int j = 0; j < pForUtil.BLOCK_SIZE; ++j) {
                 ints[j] = Math.toIntExact(restored[j]);
             }
+
             assertArrayEquals(
                 ArrayUtil.copyOfSubArray(values, i * pForUtil.BLOCK_SIZE, (i + 1) * pForUtil.BLOCK_SIZE),
                 ints);

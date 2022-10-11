@@ -20,19 +20,22 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class PForUtilBenchmark {
 
+    int BLOCK_SIZE = 256;
     int SIZE = 1000;
     long[][] mockData;
     private PForUtil pForUtil;
     final Directory d = new ByteBuffersDirectory();
     private PForUtilV2 pForUtilV2;
-    long[] tmpInput = new long[128];
-    long[] outArr= new long[128];
+    long[] tmpInput = new long[BLOCK_SIZE];
+    long[] outArr= new long[BLOCK_SIZE];
+     BasePForUtil pForUtilV3 = new PForUtilV3();
+
 
     public long[][] mockData(int size, int maxBit) {
-        long[][] out = new long[size][128];
+        long[][] out = new long[size][BLOCK_SIZE];
         Random random = ThreadLocalRandom.current();
         for (int i = 0; i < size; i++) {
-            for (int j = 0; j < 128; j++) {
+            for (int j = 0; j < BLOCK_SIZE; j++) {
                 out[i][j] = random.nextInt(18);
             }
         }
@@ -61,24 +64,30 @@ public class PForUtilBenchmark {
     }
 
     @Benchmark
-    public void testForUtil() throws IOException {
+    public void test_v1_encode() throws IOException {
         encode(pForUtil, "test.bin");
     }
 
     @Benchmark
-    public void testForUtil2() throws IOException {
+    public void test_v2_encode() throws IOException {
         encode(pForUtilV2, "test.bin");
     }
 
     @Benchmark
-    public void testForUtilDecode() throws IOException {
-        decode(pForUtil, "pForUtil.bin");
+    public void test_v3_encode() throws IOException {
+        encode(pForUtilV3, "test.bin");
     }
 
-    @Benchmark
-    public void testForUtilDecodeV2() throws IOException {
-        decode(pForUtilV2, "pForUtilV2.bin");
-    }
+
+//    @Benchmark
+//    public void testForUtilDecode() throws IOException {
+//        decode(pForUtil, "pForUtil.bin");
+//    }
+//
+//    @Benchmark
+//    public void testForUtilDecodeV2() throws IOException {
+//        decode(pForUtilV2, "pForUtilV2.bin");
+//    }
 
 
 
@@ -93,7 +102,7 @@ public class PForUtilBenchmark {
     public void encode(BasePForUtil base, String filename) throws IOException {
         IndexOutput out = d.createOutput(filename, IOContext.DEFAULT);
         for (int i = 0; i < SIZE; i++) {
-            System.arraycopy(mockData[i], 0, tmpInput, 0, 128);
+            System.arraycopy(mockData[i], 0, tmpInput, 0, BLOCK_SIZE);
             base.encode(tmpInput, out);
         }
         out.close();

@@ -25,7 +25,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /** Utility class to encode sequences of 128 small positive integers. */
-public final class PForUtil implements BasePForUtil {
+public final class PForUtil extends BasePForUtil {
+
 
   private static final int MAX_EXCEPTIONS = 7;
   private static final int HALF_BLOCK_SIZE = ForUtil.BLOCK_SIZE / 2;
@@ -54,6 +55,7 @@ public final class PForUtil implements BasePForUtil {
   private final byte[] exceptionBuff = new byte[MAX_EXCEPTIONS * 2];
 
   public PForUtil(ForUtil forUtil) {
+    super(ForUtil.BLOCK_SIZE);
     assert ForUtil.BLOCK_SIZE <= 256 : "blocksize must fit in one byte. got " + ForUtil.BLOCK_SIZE;
     this.forUtil = forUtil;
   }

@@ -1,18 +1,19 @@
 package io.dashbase.codec.utils;
 
-import io.dashbase.codec.v2.FastPFOR128;
+import io.dashbase.codec.v3.VectorFastPFOR;
 import me.lemire.integercompression.IntWrapper;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 
-public class PForUtilV2 extends BasePForUtil {
-    public static final int BLOCK_SIZE = 128;
-
-    public FastPFOR128 fastPFOR128 = new FastPFOR128();
+public class PForUtilV3 extends BasePForUtil {
+    public static final int BLOCK_SIZE = 256;
     public int[] outArr = new int[BLOCK_SIZE];
+
+    public VectorFastPFOR vectorFastPFOR = new VectorFastPFOR();
 
     public int[] intArr = new int[BLOCK_SIZE];
     public int[] compressedArr = new int[BLOCK_SIZE];
@@ -23,7 +24,7 @@ public class PForUtilV2 extends BasePForUtil {
     public static byte[] tempByte = new byte[4 * BLOCK_SIZE + 32];
 
 
-    public PForUtilV2() {
+    public PForUtilV3() {
 
         super(BLOCK_SIZE);
     }
@@ -35,13 +36,8 @@ public class PForUtilV2 extends BasePForUtil {
         for (int i = 0; i < BLOCK_SIZE; i++) {
             intArr[i] = (int) longs[i];
         }
-        fastPFOR128.encodePage(intArr, inOffset, BLOCK_SIZE, compressedArr, outOffset);
-
-
-//        out.writeVInt(outOffset.get());
-//        for (int i = 0; i < outOffset.get(); i++) {
-//            out.writeInt(compressedArr[i]);
-//        }
+        Arrays.fill(compressedArr, 0);
+        vectorFastPFOR.compress(intArr, inOffset, BLOCK_SIZE, compressedArr, outOffset);
 
         addInt(outOffset.get(), 0);
         for (int i = 0; i < outOffset.get(); i++) {
@@ -73,6 +69,7 @@ public class PForUtilV2 extends BasePForUtil {
         inOffset.set(0);
         outOffset.set(0);
         var len = in.readInt() & 0xFFFFFFFFL;
+        Arrays.fill(compressedArr, 0);
 
         in.readBytes(tempByte, 0, (int) len * 4);
 
@@ -80,7 +77,8 @@ public class PForUtilV2 extends BasePForUtil {
             compressedArr[i] = readInt(i * 4);
         }
 
-        fastPFOR128.decodePage(compressedArr, inOffset, outArr, outOffset, BLOCK_SIZE);
+
+        vectorFastPFOR.uncompress(compressedArr, inOffset, BLOCK_SIZE, outArr, outOffset );
         for (int i = 0; i < BLOCK_SIZE; i++) {
             longs[i] = outArr[i];
         }
